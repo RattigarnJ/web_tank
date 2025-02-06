@@ -1,4 +1,4 @@
-# web_detect_tank
+# web_tank
 My program Use PyTorch version 2.5.0 for CUDA 11.8
 
 CUDA 11.8
