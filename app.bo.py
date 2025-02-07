@@ -193,12 +193,29 @@ if st.button("RPA"):
     if "rpa_dataframe" in st.session_state:
         st.session_state["rpa_dataframe"] = pd.DataFrame()  # ลบข้อมูลเก่าใน DataFrame
     
+    # if not (os.path.exists(image_folder) and os.path.exists(csv_folder)):
+    #     try:
+    #         st.sidebar.write("Running RPA script to fetch images...")
+    #         result = subprocess.run([
+    #             "python", "rpa.py", str(row), str(column), str(selected_fday), 
+    #             str(selected_fday.month), str(selected_fday.year)
+    #         ], capture_output=True, text=True)
+            
+    #         if result.returncode == 0:
+    #             st.sidebar.success("RPA script completed successfully!")
+    #         else:
+    #             st.error(f"RPA script failed. Error: {result.stderr}")
+    #             st.stop()
+    #     except Exception as e:
+    #         st.error(f"An unexpected error occurred: {e}")
+    #         st.stop()
+
     if not (os.path.exists(image_folder) and os.path.exists(csv_folder)):
         try:
             st.sidebar.write("Running RPA script to fetch images...")
             result = subprocess.run([
-                "python", "rpa.py", str(row), str(column), str(selected_fday), 
-                str(selected_fday.month), str(selected_fday.year)
+                "python", "rpa.edit.py", str(row), str(column), str(), 
+                str(selected_fday.month), str(selected_fday.year),str(period_day)
             ], capture_output=True, text=True)
             
             if result.returncode == 0:
@@ -211,7 +228,7 @@ if st.button("RPA"):
             st.stop()
     
     # โหลดข้อมูลหลังจากรัน RPA script
-    dataframe = load_csv_data(selected_date)
+    dataframe = load_csv_data(selected_fday)
     
     if os.path.exists(image_folder):
         image_files = [os.path.join(root, file) for root, _, files in os.walk(image_folder) for file in files if file.endswith(".jpg")]
@@ -234,7 +251,7 @@ if st.button("RPA"):
 # แสดงผลลัพธ์
 if not st.session_state["rpa_dataframe"].empty:
     dataframe = st.session_state["rpa_dataframe"]
-    csv_data = load_csv_data(selected_date)
+    csv_data = load_csv_data(selected_fday)
     
     if not dataframe.empty and not csv_data.empty:
         merged_data = pd.merge(csv_data, dataframe, left_on="รหัสร้าน", right_on="Code", how="outer").drop(columns=["Code"])
