@@ -106,7 +106,7 @@ try:
         time.sleep(2)
 
     # month_put = int(sys.argv[4])
-    month_put = 1
+    month_put = 4
 
     month_table = {1: [2,1], 2: [2,2], 3: [2,3], 4: [2,4], 5: [3,1], 6: [3,2], 7: [3,3], 8: [3,4], 9: [4,1], 10: [4,2], 11: [4,3], 12: [4,4]}
     month_select = driver.find_element(By.XPATH, f'/html/body/div/div[2]/div/mat-datepicker-content/div[2]/mat-calendar/div/mat-year-view/table/tbody/tr[{month_table[month_put][0]}]/td[{month_table[month_put][1]}]/button')
@@ -159,14 +159,15 @@ try:
     search_button.click()
     time.sleep(5)
 
-    # start day 
     # tr = int(sys.argv[1])
     # td = int(sys.argv[2])
-    tr = 1
-    td = 2
+
+    # start day 
+    tr = 3
+    td = 1
 
     # period_day = int(sys.argv[6])
-    period_day = 2
+    period_day = 3
 
     # Var downloaded_urls
     downloaded_urls = set() 
@@ -251,7 +252,7 @@ try:
 
                                     if row_index == rows_count:
 
-                                        if 5 <= row_index < 10:
+                                        if 5 <= row_index <= 10:
 
                                             driver.execute_script("window.scrollTo(0, document.body.scrollHeight);")
                                             time.sleep(3)
@@ -1196,8 +1197,11 @@ try:
             i = 1
             count_row_now = 0
 
-            back_button = driver.find_element(By.XPATH, '/html/body/app-root/app-e-service-table/div/span')
-            back_button.click()
+            # back_button = driver.find_element(By.XPATH, '/html/body/app-root/app-e-service-table/div/span')
+            # back_button.click()
+            # time.sleep(5)
+
+            driver.back()
             time.sleep(5)
 
             if td > 7:
