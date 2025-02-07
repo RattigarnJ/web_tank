@@ -74,6 +74,7 @@ def get_max_pages():
 try:
     # Open Website
     driver.get("https://pm-rsm.cpretailink.co.th/login")
+    output_dir = download_folder_image
 
     # Put Username & Password then Enter Login
     username_user = driver.find_element(By.XPATH, '/html/body/app-root/app-login/div/div/div/div/div/div[2]/form/div[1]/input')
@@ -235,11 +236,8 @@ try:
                     name_file_text = name_file.text.strip()
                     date = name_file_text.split("PM")[1].strip()
 
+                    # New Task
                     # Making folder of image file by DATE before put image folder by branch-name inside
-                    BASE_SAVE_PATH_ADD = os.path.join(os.path.expanduser("~"), "Documents", "YOLOAppData" , "IMAGE_file")
-                    branch_join = os.path.join(BASE_SAVE_PATH_ADD, date)
-                    os.makedirs(branch_join, exist_ok=True)
-                    output_dir = branch_join
 
                     # Find lasest file in folder csv
                     files = os.listdir(download_folder_csv)
