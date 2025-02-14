@@ -32,10 +32,14 @@ st.markdown("<h1 style='text-align: center;'>Water Preventive Maintenance Classi
 st.sidebar.title("Settings")
 st.sidebar.write("Adjust settings as needed.")
 
-documents_path = os.path.join(os.path.expanduser("~"), "Documents", "YOLOAppData")
-# ฟังก์ชันสำหรับโหลดข้อมูลจาก CSV
+# Path of IMAGE & CSV
+documents_path_img = os.path.join(os.path.expanduser("~"), "Documents", "YOLOAppData", "IMAGE_file")
+documents_path_csv = os.path.join(os.path.expanduser("~"), "Documents", "YOLOAppData", "CSV_file")
+
+# FIX IT
+# 1-CSV pull from folder path 
 def load_csv_data(selected_date):
-    folder_path = os.path.join(documents_path, f"{selected_date}_csv")
+    folder_path = os.path.join(documents_path_csv, f"{selected_date}_csv")
     if os.path.exists(folder_path):
         csv_files = [f for f in os.listdir(folder_path) if f.endswith(".csv")]
         if csv_files:
@@ -47,7 +51,11 @@ def load_csv_data(selected_date):
     st.error(f"Please run RPA.")
     return pd.DataFrame()
 
-# Date
+# For reset RPA state
+def reset_rpa_state():
+    st.session_state["rpa_results"] = []
+
+# Function DATE for GET tr & td
 def get_column_day(selected_date):
     weekday = selected_date.weekday()
     weekday = (weekday + 1) % 7
@@ -62,40 +70,51 @@ def get_row_day(day, column, selected_date):
     row = (day_position - 1) // 7 + 1
     return row
 
-# selected_date = st.date_input("เลือกวันที่", datetime.date.today())
-# csv_data = load_csv_data(selected_date)
-# day, column = get_column_day(selected_date)
-# row = get_row_day(day, column, selected_date)
-
+# fday , fcolumn , frow
 selected_fday = st.date_input("เลือกวันแรก", datetime.date.today())
 csv_data = load_csv_data(selected_fday)
-day, column = get_column_day(selected_fday)
-row = get_row_day(day, column, selected_fday)
+fday, fcolumn = get_column_day(selected_fday)
+frow = get_row_day(fday, fcolumn, selected_fday)
 
+# lday , lcolumn , lrow
 selected_lday = st.date_input("เลือกวันสุดท้าย", datetime.date.today())
 csv_data = load_csv_data(selected_lday)
-day, column = get_column_day(selected_lday)
-row = get_row_day(day, column, selected_lday)
+lday, lcolumn = get_column_day(selected_lday)
+lrow = get_row_day(lday, lcolumn, selected_lday)
 
 st.write(f"คุณเลือกวันที่: {selected_fday} ถึงวันที่ {selected_lday}")
-# st.write(f"ตำแหน่งในตาราง: วันที่ {day}, แถวที่ {row}, คอลัมน์ {column}")
+st.write(f"ตำแหน่งในตาราง วันแรก: วันที่ {fday}, แถวที่ {frow}, คอลัมน์ {fcolumn}")
+st.write(f"ตำแหน่งในตาราง วันสุดท้าย: วันที่ {lday}, แถวที่ {lrow}, คอลัมน์ {lcolumn}")
 
-period_day = selected_lday.day - selected_fday.day
+period_day = (selected_lday.day - selected_fday.day) + 1
 
 st.write(f"ระยะวันทั้งหมด {period_day}")
+
+# WE HAVE STATE OF DAY that APP pull image to display ??
+# IF rpa successful
+# (1) App read csv files from CSV_file and display
+#     - display tables (ftable - ltable)
+#  or - we try to display ftable-ltable together in 1 TABLE
+#       and then create dropdown for choose day that user want to know
+#     I DO --- 
+#     HOW PROCESS ---
+# (2) App read image files from IMAGE_file and display
+#     - we should to process image in one time ? and then display all together
+#  or - display image just one day for user choose day that user want to know
+#     I DO ---
+#     HOW PROCESS ---
+# (3) App display Pie Chart
+#     - we should display PIE CHART of fday-lday 
+#     I DO ---
+#     HOW PROCESS 4---
 
 if "rpa_dataframe" not in st.session_state:
     st.session_state["rpa_dataframe"] = pd.DataFrame(columns=["Filename", "Code", "Class Predict", "Confidence"])
 if "rpa_results" not in st.session_state:
     st.session_state["rpa_results"] = []
 
-
-def reset_rpa_state():
-    st.session_state["rpa_results"] = []
-
 torch.backends.cudnn.benchmark = True  # เพิ่มประสิทธิภาพเมื่อใช้ GPU
 torch.backends.cudnn.enabled = True
-
 
 # Load YOLOv8 Model only once
 def load_model():
@@ -182,39 +201,22 @@ def process_image_RPA(uploaded_file):
     # How to get folder for display
 
 if st.button("RPA"):
-    # documents_path = os.path.dirname(os.path.abspath(__file__))
+    documents_path_img = os.path.dirname(os.path.abspath(__file__))
     selected_folder_name = selected_fday.strftime("%Y-%m-%d")
-    image_folder = os.path.join(documents_path, selected_folder_name)
-    csv_folder = os.path.join(documents_path, f"{selected_folder_name}_csv")
+    image_folder = os.path.join(documents_path_img, f"{selected_folder_name}")
+    csv_folder = os.path.join(documents_path_csv, f"{selected_folder_name}_csv")
 
     # รีเซ็ตค่าใน session_state ก่อนการแสดงผลใหม่
     if "rpa_results" in st.session_state:
         st.session_state["rpa_results"] = []  # ลบข้อมูลเก่าที่เก็บไว้
     if "rpa_dataframe" in st.session_state:
         st.session_state["rpa_dataframe"] = pd.DataFrame()  # ลบข้อมูลเก่าใน DataFrame
-    
-    # if not (os.path.exists(image_folder) and os.path.exists(csv_folder)):
-    #     try:
-    #         st.sidebar.write("Running RPA script to fetch images...")
-    #         result = subprocess.run([
-    #             "python", "rpa.py", str(row), str(column), str(selected_fday), 
-    #             str(selected_fday.month), str(selected_fday.year)
-    #         ], capture_output=True, text=True)
-            
-    #         if result.returncode == 0:
-    #             st.sidebar.success("RPA script completed successfully!")
-    #         else:
-    #             st.error(f"RPA script failed. Error: {result.stderr}")
-    #             st.stop()
-    #     except Exception as e:
-    #         st.error(f"An unexpected error occurred: {e}")
-    #         st.stop()
 
     if not (os.path.exists(image_folder) and os.path.exists(csv_folder)):
         try:
             st.sidebar.write("Running RPA script to fetch images...")
             result = subprocess.run([
-                "python", "rpa.edit.py", str(row), str(column), str(), 
+                "python", "rpa.edit.py", str(frow), str(fcolumn), str(), 
                 str(selected_fday.month), str(selected_fday.year),str(period_day)
             ], capture_output=True, text=True)
             
