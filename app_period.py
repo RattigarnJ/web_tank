@@ -49,6 +49,7 @@ def load_csv_data():
         if csv_files:
             # Create empthy list for keep another file
             dfs = [] 
+            # For loop for reading csv_file and merge them together
             for file_name in csv_files:
                 file_path = os.path.join(folder_path, file_name)
                 df = pd.read_csv(file_path)
