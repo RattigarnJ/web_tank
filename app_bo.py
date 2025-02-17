@@ -36,26 +36,45 @@ st.sidebar.write("Adjust settings as needed.")
 documents_path_img = os.path.join(os.path.expanduser("~"), "Documents", "YOLOAppData", "IMAGE_file")
 documents_path_csv = os.path.join(os.path.expanduser("~"), "Documents", "YOLOAppData", "CSV_file")
 
-# FIX IT
+# Func - For pull csv 
+# FIX IT (Load many csv-file)
+# STATUS - Completed ?
 # 1-CSV pull from folder path 
-def load_csv_data(selected_date):
-    folder_path = os.path.join(documents_path_csv, f"{selected_date}_csv")
+def load_csv_data():
+    # var folder_path of csv for go to All csv file 
+    folder_path = os.path.join(documents_path_csv)
+    # Check - have this folder in path
     if os.path.exists(folder_path):
+        # find csv file following folder_path 
         csv_files = [f for f in os.listdir(folder_path) if f.endswith(".csv")]
+        # OLD # if have csv file 
+        # if csv_files:
+        #     # read the first csv file in folder
+        #     file_path = os.path.join(folder_path, csv_files[0])
+        #     df = pd.read_csv(file_path)
+        #     df = df.drop(columns=["ข้อเสนอแนะ", "ข้อเสนอแนะเพิ่มเติม"], errors='ignore')
+        #     return df
+        # if have csv file
         if csv_files:
-            file_path = os.path.join(folder_path, csv_files[0])  # ใช้ไฟล์ CSV แรกที่พบ
-            df = pd.read_csv(file_path)
-            df = df.drop(columns=["ข้อเสนอแนะ", "ข้อเสนอแนะเพิ่มเติม"], errors='ignore')
-            return df
+            # Create empthy list for keep another file
+            dfs = [] 
+            for file_name in csv_files:
+                file_path = os.path.join(folder_path, file_name)
+                df = pd.read_csv(file_path)
+                # Deleted useless column
+                df = df.drop(columns=["ข้อเสนอแนะ", "ข้อเสนอแนะเพิ่มเติม"], errors='ignore')
+                dfs.append(df)  # Add dataframe in list
+            combined_df = pd.concat(dfs, ignore_index=True)  # Include all data
+            return combined_df
     # st.error(f"No CSV file found in: {folder_path}")
     st.error(f"Please run RPA.")
     return pd.DataFrame()
 
-# For reset RPA state
+# Func - For reset RPA state
 def reset_rpa_state():
     st.session_state["rpa_results"] = []
 
-# Function DATE for GET tr & td
+# Func - DATE for GET tr & td
 def get_column_day(selected_date):
     weekday = selected_date.weekday()
     weekday = (weekday + 1) % 7
@@ -72,13 +91,13 @@ def get_row_day(day, column, selected_date):
 
 # fday , fcolumn , frow
 selected_fday = st.date_input("เลือกวันแรก", datetime.date.today())
-csv_data = load_csv_data(selected_fday)
+# csv_data = load_csv_data(selected_fday)
 fday, fcolumn = get_column_day(selected_fday)
 frow = get_row_day(fday, fcolumn, selected_fday)
 
 # lday , lcolumn , lrow
 selected_lday = st.date_input("เลือกวันสุดท้าย", datetime.date.today())
-csv_data = load_csv_data(selected_lday)
+# csv_data = load_csv_data(selected_lday)
 lday, lcolumn = get_column_day(selected_lday)
 lrow = get_row_day(lday, lcolumn, selected_lday)
 
@@ -96,17 +115,17 @@ st.write(f"ระยะวันทั้งหมด {period_day}")
 #     - display tables (ftable - ltable)
 #  or - we try to display ftable-ltable together in 1 TABLE
 #       and then create dropdown for choose day that user want to know
-#     I DO --- 
-#     HOW PROCESS ---
+#     I DO --- Completed ?
+#     HOW PROCESS --- Keep all file in directory and display by one table
 # (2) App read image files from IMAGE_file and display
 #     - we should to process image in one time ? and then display all together
 #  or - display image just one day for user choose day that user want to know
-#     I DO ---
-#     HOW PROCESS ---
+#     I DO --- Completed ?
+#     HOW PROCESS --- Read All and display one time
 # (3) App display Pie Chart
 #     - we should display PIE CHART of fday-lday 
-#     I DO ---
-#     HOW PROCESS 4---
+#     I DO --- Completed ?
+#     HOW PROCESS --- Display one time by included-all-table
 
 if "rpa_dataframe" not in st.session_state:
     st.session_state["rpa_dataframe"] = pd.DataFrame(columns=["Filename", "Code", "Class Predict", "Confidence"])
@@ -116,7 +135,7 @@ if "rpa_results" not in st.session_state:
 torch.backends.cudnn.benchmark = True  # เพิ่มประสิทธิภาพเมื่อใช้ GPU
 torch.backends.cudnn.enabled = True
 
-# Load YOLOv8 Model only once
+# Func - Load YOLOv8 Model only once
 def load_model():
     model_path = "best11_50_8.pt"
     model = YOLO(model_path)
@@ -133,13 +152,17 @@ except Exception as e:
     st.stop()
 
 
-# Function to process an image
+# Func - For process pull images
+# FIX IT !!!
+# This Func for pull images just 1 folder
 def process_image_RPA(uploaded_file):
     try:
         # Open the uploaded image and convert to RGB
         original_image = Image.open(uploaded_file).convert("RGB")
         resized_image = original_image.resize((640, 640))
         image_array = np.array(resized_image)
+
+        # Process images by YOLO Model
         results = model.predict(image_array)
         detections = results[0].boxes  # Get bounding boxes
         rendered_image = results[0].plot()  # Render detections on the image
@@ -198,27 +221,32 @@ def process_image_RPA(uploaded_file):
         st.error(f"Error processing image {uploaded_file.name}: {e}")
         return None, None
     
-    # How to get folder for display
+documents_path = os.path.join(os.path.expanduser("~"), "Documents", "YOLOAppData")
 
+# Part - For process RPA just click
 if st.button("RPA"):
-    documents_path_img = os.path.dirname(os.path.abspath(__file__))
+    # documents_path = os.path.dirname(os.path.abspath(__file__))
+    # Folder name for str date
     selected_folder_name = selected_fday.strftime("%Y-%m-%d")
-    image_folder = os.path.join(documents_path_img, f"{selected_folder_name}")
-    csv_folder = os.path.join(documents_path_csv, f"{selected_folder_name}_csv")
+    # Var image & csv FOLDER
+    # folder branch code ??
+    image_folder = os.path.join(documents_path, "IMAGE_file")
+    csv_folder = os.path.join(documents_path, "CSV_file" , f"{selected_folder_name}_csv")
 
-    # รีเซ็ตค่าใน session_state ก่อนการแสดงผลใหม่
+    # Reset value by session_state Before display again
     if "rpa_results" in st.session_state:
-        st.session_state["rpa_results"] = []  # ลบข้อมูลเก่าที่เก็บไว้
+        st.session_state["rpa_results"] = []  
     if "rpa_dataframe" in st.session_state:
-        st.session_state["rpa_dataframe"] = pd.DataFrame()  # ลบข้อมูลเก่าใน DataFrame
+        st.session_state["rpa_dataframe"] = pd.DataFrame()  
 
-    if not (os.path.exists(image_folder) and os.path.exists(csv_folder)):
+    # call using RPA_file that process it by subprocess
+    if not (os.path.exists(image_folder) or os.path.exists(csv_folder)):
         try:
             st.sidebar.write("Running RPA script to fetch images...")
             result = subprocess.run([
                 "python", "rpa.edit.py", str(frow), str(fcolumn), str(), 
                 str(selected_fday.month), str(selected_fday.year),str(period_day)
-            ], capture_output=True, text=True)
+            ], capture_output=True, text=True, encoding="utf-8")
             
             if result.returncode == 0:
                 st.sidebar.success("RPA script completed successfully!")
@@ -229,62 +257,107 @@ if st.button("RPA"):
             st.error(f"An unexpected error occurred: {e}")
             st.stop()
     
-    # โหลดข้อมูลหลังจากรัน RPA script
-    dataframe = load_csv_data(selected_fday)
+    # Load data(csv) 
+    dataframe = load_csv_data()
+    
+    # # Load data(image) 
+    # if os.path.exists(image_folder):
+    #     image_files = [os.path.join(root, file) for root, _, files in os.walk(image_folder) for file in files if file.endswith(".jpg")]
+    #     reset_rpa_state()
+        
+    #     if image_files:
+    #         for image_file in image_files:
+    #             filename = os.path.splitext(os.path.basename(image_file))[0]
+    #             code = os.path.basename(os.path.dirname(image_file))
+    #             detected_image, detection_info = process_image_RPA(image_file)
+                
+    #             if detected_image and isinstance(detection_info, list) and detection_info:
+    #                 st.session_state["rpa_results"].append({"Filename": filename, "Code": code, "Image File": image_file, "Detection Info": detection_info})
+    #                 for cls, confidence in detection_info:
+    #                     new_row = pd.DataFrame([{ "Filename": filename, "Code": code, "Class Predict": cls, "Confidence": confidence }])
+    #                     st.session_state["rpa_dataframe"] = pd.concat([st.session_state["rpa_dataframe"], new_row], ignore_index=True)
     
     if os.path.exists(image_folder):
-        image_files = [os.path.join(root, file) for root, _, files in os.walk(image_folder) for file in files if file.endswith(".jpg")]
-        reset_rpa_state()
-        
-        if image_files:
-            for image_file in image_files:
+        # os.walk for go to all-folder
+        folder_paths = []
+        for root, dirs, files in os.walk(image_folder):
+            for file in files:
+                if file.endswith(".jpg"):  # เลือกเฉพาะไฟล์รูปภาพ
+                    folder_paths.append(os.path.join(root, file))
+
+        # Check - Have picture in folder or not ?
+        if folder_paths:
+            st.session_state["rpa_results"] = []
+            st.session_state["rpa_dataframe"] = pd.DataFrame()
+
+            for image_file in folder_paths:
+                # Pull name-branch-code
                 filename = os.path.splitext(os.path.basename(image_file))[0]
                 code = os.path.basename(os.path.dirname(image_file))
-                detected_image, detection_info = process_image_RPA(image_file)
-                
+
+                # Call function process image RPA
+                detected_image, detection_info = process_image_RPA(image_file) 
+
+                # Save value in session_state
                 if detected_image and isinstance(detection_info, list) and detection_info:
-                    st.session_state["rpa_results"].append({"Filename": filename, "Code": code, "Image File": image_file, "Detection Info": detection_info})
+                    st.session_state["rpa_results"].append({
+                        "Filename": filename,
+                        "Code": code,
+                        "Image File": image_file,
+                        "Detection Info": detection_info
+                    })
+
+                    # Add data in DataFrame
                     for cls, confidence in detection_info:
-                        new_row = pd.DataFrame([{ "Filename": filename, "Code": code, "Class Predict": cls, "Confidence": confidence }])
+                        new_row = pd.DataFrame([{
+                            "Filename": filename,
+                            "Code": code,
+                            "Class Predict": cls,
+                            "Confidence": confidence
+                        }])
                         st.session_state["rpa_dataframe"] = pd.concat([st.session_state["rpa_dataframe"], new_row], ignore_index=True)
-    
+
+            st.write("RPA process completed. Data is ready for viewing.")
+        
     st.write("RPA process completed. Data is ready for viewing.")
     
-# แสดงผลลัพธ์
+# Display PART 
 if not st.session_state["rpa_dataframe"].empty:
     dataframe = st.session_state["rpa_dataframe"]
-    csv_data = load_csv_data(selected_fday)
+    csv_data = load_csv_data()
     
     if not dataframe.empty and not csv_data.empty:
         merged_data = pd.merge(csv_data, dataframe, left_on="รหัสร้าน", right_on="Code", how="outer").drop(columns=["Code"])
         
-        # เพิ่ม dropdown สำหรับเลือกโซนที่จุดนี้
+        # Add DROP-DOWN for select zone
         unique_zones = ["ALL"] + sorted(merged_data["โซน"].dropna().unique().tolist())
         selected_zone = st.selectbox("Select Zone", unique_zones)
         
-        # กรองข้อมูลตามโซนที่เลือก
+        # Filter data(zone) from zone that user select
         filtered_data = merged_data.copy()
         if selected_zone != "ALL":
             filtered_data = filtered_data[filtered_data["โซน"] == selected_zone]
         
-        # อัปเดตรายการรหัสร้านตามโซนที่เลือก
+        # Filter data(branch-code) from branch-code that user select 1
         unique_codes = ["ALL"] + sorted(filtered_data["รหัสร้าน"].dropna().unique().tolist())
         selected_code = st.selectbox("Select Code", unique_codes)
         
-        # กรองข้อมูลตามรหัสร้านที่เลือก
+        # Filter data(branch-code) from branch-code that user select 2
         if selected_code != "ALL":
             filtered_data = filtered_data[filtered_data["รหัสร้าน"] == selected_code]
         
-        # อัปเดตรายการ Class Predict ตามรหัสร้านที่เลือก
+        # Update task Class Predict by branch-code that user select
         unique_classes = ["ALL"] + sorted(filtered_data["Class Predict"].dropna().unique().tolist())
         selected_class = st.selectbox("Select Class", unique_classes)
         
-        # กรองข้อมูลตาม Class Predict ที่เลือก
+        # Filter by Class Predict that user choose
         if selected_class != "ALL":
             filtered_data = filtered_data[filtered_data["Class Predict"] == selected_class]
         
+        # FOR WHAT ???
         st.dataframe(filtered_data.reset_index(drop=True))
 
+        # FOR WHAT ???
         if not filtered_data.empty:
             st.write("## Classification Distribution")
             class_counts = filtered_data["Class Predict"].value_counts()
@@ -292,12 +365,12 @@ if not st.session_state["rpa_dataframe"].empty:
             fig, ax = plt.subplots()
 
             if selected_class != "ALL" and selected_class in class_counts:
-                # ถ้าเลือก class เดียวให้แสดง Pie Chart เต็มวง และแสดงข้อความตรงกลาง
+                # If choose a class to display Full-Pie Chart and display text center
                 percentage = (class_counts[selected_class] / len(filtered_data)) * 100
-                ax.pie([1], labels=[""], startangle=90, colors=["#99c2ff"])  # ซ่อน label
+                ax.pie([1], labels=[""], startangle=90, colors=["#99c2ff"])  # hide label
                 ax.text(0, 0, f"{selected_class}\n{percentage:.1f}%", ha="center", va="center", fontsize=14)
             else:
-                # ถ้าเลือก "ALL" ให้แสดง Pie Chart ปกติ
+                # If choose "ALL" to display Normal-Pie Chart
                 ax.pie((class_counts / len(filtered_data)) * 100, labels=class_counts.index, autopct="%1.1f%%", startangle=90, colors=plt.cm.Paired.colors)
 
             ax.axis("equal")
@@ -305,16 +378,16 @@ if not st.session_state["rpa_dataframe"].empty:
 
 
         for result in st.session_state["rpa_results"]:
-            # ตรวจสอบว่า result["Code"] อยู่ในโซนที่เลือก
+            # Check result["Code"] in the selected zone
             if selected_zone != "ALL":
                 if result["Code"] not in filtered_data["รหัสร้าน"].values:
                     continue
 
-            # กรองตามรหัสร้าน
+            # Filter by branch-code
             if selected_code != "ALL" and result["Code"] != selected_code:
                 continue
 
-            # กรองตามประเภทการตรวจจับ
+            # Filter type detected image
             if selected_class != "ALL" and not any(cls == selected_class for cls, _ in result["Detection Info"]):
                 continue
             st.markdown(f"#### รหัสร้าน: {result['Code']}")
